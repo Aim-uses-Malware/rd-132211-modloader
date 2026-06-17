@@ -64,7 +64,7 @@ public class ExampleMod implements IMod {
         RDLoader.EVENT_BUS.register(Events.PlayerTickEvent.class, e -> {
             tickCounter++;
             if (tickCounter % 100 == 0) {
-                System.out.printf("[ExampleMod] Игрок: x=%.1f y=%.1f z=%.1f onGround=%b%n",
+                System.out.println(String.format("Something: %s", value));
                         e.player.x, e.player.y, e.player.z, e.player.onGround);
             }
         });
