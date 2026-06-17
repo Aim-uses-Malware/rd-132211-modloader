@@ -1,7 +1,7 @@
 package com.mojang.rubydung.modloader;
 
 import com.mojang.rubydung.mods.example.ExampleMod;
-import com.mojang.rubydung.mods.worldgen
+import com.mojang.rubydung.mods.worldgen;
 
 /**
  * ModList — центральный реестр всех модов.
