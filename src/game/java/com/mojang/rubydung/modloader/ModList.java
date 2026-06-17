@@ -1,6 +1,7 @@
 package com.mojang.rubydung.modloader;
 
 import com.mojang.rubydung.mods.example.ExampleMod;
+import com.mojang.rubydung.mods.worldgen
 
 /**
  * ModList — центральный реестр всех модов.
@@ -23,6 +24,7 @@ public final class ModList {
         // ─── Встроенные моды rdLoader ──────────────────────────────────
         // Раскомментируй пример чтобы активировать:
         RDLoader.registerMod(new ExampleMod());
+        RDLoader.registerMod(new WorldGen());
 
         // ─── Сюда добавляй свои моды ───────────────────────────────────
         // RDLoader.registerMod(new МойМод());
