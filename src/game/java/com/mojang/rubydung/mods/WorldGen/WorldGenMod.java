@@ -8,17 +8,6 @@ import com.mojang.rubydung.modloader.event.Events;
 
 /**
  * WorldGenMod — генерирует реалистичный мир 256×256×64 вместо дефолтного плоского.
- *
- * Алгоритм:
- *   1. Многооктавный Perlin noise → карта высот (Y = 20..52)
- *   2. Снизу → поверхность: камень (tile=1)
- *   3. Несколько слоёв под поверхностью → тоже камень (grass texture на поверхности делает Chunk)
- *   4. Вода: если высота < SEA_LEVEL — заполняем до SEA_LEVEL водяным блоком... но у нас нет
- *      отдельного tile ID воды, поэтому оставляем воздух (пещеры в горах — later)
- *   5. Пещеры: 3D Perlin noise → вырезаем тоннели внутри массива
- *   6. Сохранение: перехватываем LevelResetEvent чтобы при сбросе тоже запускать WorldGen
- *
- * Запускается только если level.dat не существует (wasLoaded = false).
  */
 @RDMod(
     id          = "worldgen",
@@ -88,7 +77,6 @@ public class WorldGenMod implements IMod {
     public void postInit() {}
 
     // ─── Генерация мира ───────────────────────────────────────────────────
-
     private void generate(Level level) {
         int W = level.width;   // 256
         int H = level.height;  // 256
@@ -163,14 +151,10 @@ public class WorldGenMod implements IMod {
     }
 
     // ─── Perlin noise ─────────────────────────────────────────────────────
-    // Простая реализация без массивов permutation (TeaVM-безопасная)
-
-    /** 2D октава Perlin noise, возвращает -1..1 */
     private double octave(double x, double z, double freq, long seed) {
         return noise2d(x * freq, z * freq, seed);
     }
 
-    /** 2D value noise с бикубической интерполяцией */
     private double noise2d(double x, double z, long seed) {
         int xi = fastFloor(x);
         int zi = fastFloor(z);
@@ -190,7 +174,6 @@ public class WorldGenMod implements IMod {
             lerp(fx, v01, v11));
     }
 
-    /** 3D value noise */
     private double noise3d(double x, double y, double z, long seed) {
         int xi = fastFloor(x);
         int yi = fastFloor(y);
@@ -217,7 +200,6 @@ public class WorldGenMod implements IMod {
             lerp(fy, lerp(fx, v001, v101), lerp(fx, v011, v111)));
     }
 
-    /** Смешение для плавной интерполяции (6t^5 - 15t^4 + 10t^3) */
     private static double fade(double t) {
         return t * t * t * (t * (t * 6 - 15) + 10);
     }
@@ -231,7 +213,6 @@ public class WorldGenMod implements IMod {
         return x < xi ? xi - 1 : xi;
     }
 
-    /** Детерминированный хэш 2D → -1..1 */
     private static double gradHash2(int x, int z, long seed) {
         long h = seed ^ (x * 0x9E3779B97F4A7C15L) ^ (z * 0x6C62272E07BB0142L);
         h ^= h >>> 33;
@@ -242,7 +223,6 @@ public class WorldGenMod implements IMod {
         return (double)(h & 0x7FFFFFFL) / (double) 0x7FFFFFFL * 2.0 - 1.0;
     }
 
-    /** Детерминированный хэш 3D → -1..1 */
     private static double gradHash3(int x, int y, int z, long seed) {
         long h = seed ^ (x * 0x9E3779B97F4A7C15L) ^ (y * 0xBF58476D1CE4E5B9L) ^ (z * 0x6C62272E07BB0142L);
         h ^= h >>> 33;
