@@ -26,6 +26,9 @@ public class Level {
     private int[] lightDepths;
     private ArrayList<LevelListener> levelListeners = new ArrayList();
 
+    /** True if level.dat existed and was loaded from disk. False = brand new world. */
+    public boolean wasLoaded = false;
+
     public Level(int w, int h, int d) {
         this.width  = w;
         this.height = h;
@@ -52,6 +55,7 @@ public class Level {
             if (!file.exists()) return;
             DataInputStream e = new DataInputStream(new GZIPInputStream(file.getInputStream()));
             e.readFully(this.blocks);
+            this.wasLoaded = true;
             this.calcLightDepths(0, 0, this.width, this.height);
 
             for (int i = 0; i < this.levelListeners.size(); ++i) {
@@ -200,4 +204,30 @@ public class Level {
 
     /** Total block count. */
     public int getBlockCount() { return blocks.length; }
+
+    /**
+     * Bulk-replace all blocks at once and recalculate lighting.
+     * Use this for world generation — much faster than calling setTileRaw() per block.
+     * @param newBlocks byte array of size width * height * depth, indexed as (y * height + z) * width + x
+     */
+    public void setAllBlocks(byte[] newBlocks) {
+        if (newBlocks.length != this.blocks.length) {
+            throw new IllegalArgumentException("setAllBlocks: array size mismatch");
+        }
+        System.arraycopy(newBlocks, 0, this.blocks, 0, this.blocks.length);
+        this.calcLightDepths(0, 0, this.width, this.height);
+        for (int i = 0; i < this.levelListeners.size(); ++i) {
+            ((LevelListener) this.levelListeners.get(i)).allChanged();
+        }
+    }
+
+    /**
+     * Returns a copy of the raw block array for reading.
+     * Index formula: (y * height + z) * width + x
+     */
+    public byte[] copyBlocks() {
+        byte[] copy = new byte[this.blocks.length];
+        System.arraycopy(this.blocks, 0, copy, 0, this.blocks.length);
+        return copy;
+    }
 }
