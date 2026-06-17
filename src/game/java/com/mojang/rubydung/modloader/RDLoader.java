@@ -320,8 +320,10 @@ public final class RDLoader {
      */
     private static List<ModContainer> sortByDependencies(List<ModContainer> mods) {
         List<ModContainer> sorted = new ArrayList<>();
-        Set<String> visited = new HashSet<>();
-        Set<String> inProgress = new HashSet<>();
+        // Use ArrayList instead of HashSet — TeaVM WASM-GC has an illegal cast bug
+        // in HashSet.remove(Object) / HashMap.removeByKey when generic type info is erased.
+        List<String> visited    = new ArrayList<>();
+        List<String> inProgress = new ArrayList<>();
 
         Map<String, ModContainer> byId = new HashMap<>();
         for (ModContainer m : mods) byId.put(m.getId(), m);
@@ -334,27 +336,46 @@ public final class RDLoader {
 
     private static void visitMod(ModContainer mod,
                                   Map<String, ModContainer> byId,
-                                  Set<String> visited,
-                                  Set<String> inProgress,
+                                  List<String> visited,
+                                  List<String> inProgress,
                                   List<ModContainer> out) {
-        if (visited.contains(mod.getId())) return;
-        if (inProgress.contains(mod.getId())) {
-            System.err.println("[rdLoader] Dependency cycle detected for mod: " + mod.getId());
+        String id = mod.getId();
+        if (listContains(visited, id)) return;
+        if (listContains(inProgress, id)) {
+            System.err.println("[rdLoader] Dependency cycle detected for mod: " + id);
             return;
         }
-        inProgress.add(mod.getId());
+        inProgress.add(id);
         for (String dep : mod.getMeta().dependencies()) {
             ModContainer depMod = byId.get(dep);
             if (depMod == null) {
-                System.err.println("[rdLoader] WARNING: mod '" + mod.getId()
+                System.err.println("[rdLoader] WARNING: mod '" + id
                         + "' requires missing dependency '" + dep + "'");
             } else {
                 visitMod(depMod, byId, visited, inProgress, out);
             }
         }
-        inProgress.remove(mod.getId());
-        visited.add(mod.getId());
+        listRemove(inProgress, id);
+        visited.add(id);
         out.add(mod);
+    }
+
+    /** TeaVM-safe String contains check (avoids generic type cast issues). */
+    private static boolean listContains(List<String> list, String value) {
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).equals(value)) return true;
+        }
+        return false;
+    }
+
+    /** TeaVM-safe String remove (avoids HashSet.remove illegal cast in WASM-GC). */
+    private static void listRemove(List<String> list, String value) {
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i).equals(value)) {
+                list.remove(i);
+                return;
+            }
+        }
     }
 
     private static void printLoadSummary() {
